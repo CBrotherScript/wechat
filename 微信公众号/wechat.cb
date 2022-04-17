@@ -1,7 +1,7 @@
 ﻿import lib/http
 import WXBizMsgCrypt
 
-//微信公众号后台收发消息的例子
+//微信公众号后台验证和收发消息的例子
 
 const WECHAT_TOKEN = "test_wechat_token_2022.4.17";
 const WECHAT_AESKEY = "48df**************************fb4";
