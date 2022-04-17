@@ -1,0 +1,55 @@
+import CBOpenSSL.code
+
+//对应官方https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/signature.html的加解密算法
+
+class WXBizDataCrypt
+{
+	var m_sAppid;
+	var m_sSessionkey;
+
+	function WXBizDataCrypt(sAppid,sSessionkey)
+	{
+		m_sAppid = sAppid;
+		m_sSessionkey = sSessionkey;
+	}
+
+	function decryptData(sEncryptedData, sIv)
+	{
+		if(strlen(m_sSessionkey) != 24)
+		{
+			return null;
+		}
+		
+		var aesKey = base64_decode(m_sSessionkey);
+		
+		if(strlen(sIv) != 24)
+		{
+			return null;
+		}
+		
+		var aesIV =  base64_decode(sIv);	
+		var aesCipher = base64_decode(sEncryptedData);
+		
+		var data = openssl_decrypt_aes_128_cbc(aesCipher,aesKey,aesIV);
+		
+		var json = new Json(data);
+		var watermark = json.get("watermark");
+		if(watermark == null)
+		{
+			return null;
+		}
+		
+		var jsonappid = watermark.get("appid");
+		if(jsonappid == null)
+		{
+			return null;
+		}
+		
+		if(jsonappid != m_sAppid)
+		{
+			return null;
+		}
+		
+		return data;
+	}	
+}
