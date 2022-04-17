@@ -1,8 +1,8 @@
 # wechat
-这是一个用CBrother实现的微信后台开发的所有用到的消息加密算法
+这是一个用CBrother实现的微信后台开发中所用到的加密算法
 
 # 微信公众号后台开发
-【微信公众号】目录为微信公众号后台开发中收发消息用到的算法
+【微信公众号】目录为微信公众号后台开发中收发消息时用到的算法
 
 对应了官方的这个页面的算法：https://developers.weixin.qq.com/doc/oplatform/Third-party_Platforms/2.0/api/Before_Develop/Technical_Plan.html
 
