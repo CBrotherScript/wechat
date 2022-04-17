@@ -1,4 +1,4 @@
-import WXBizDataCrypt
+import WXBizMsgCrypt
 
 //微信公众号后台加解密
 //对应官方https://developers.weixin.qq.com/doc/oplatform/Third-party_Platforms/2.0/api/Before_Develop/Technical_Plan.html的加解密算法

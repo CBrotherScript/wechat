@@ -1,5 +1,5 @@
 ﻿import lib/http
-import WXBizDataCrypt
+import WXBizMsgCrypt
 
 //微信公众号后台收发消息的例子
 
@@ -7,7 +7,7 @@ const WECHAT_TOKEN = "test_wechat_token_2022.4.17";
 const WECHAT_AESKEY = "48df**************************fb4";
 const WECHAT_APPID = "wxb******";
 
-var g_WXBizDataCrypt = new WXBizMsgCrypt(WECHAT_TOKEN,WECHAT_AESKEY,WECHAT_APPID);
+var g_WXBizMsgCrypt = new WXBizMsgCrypt(WECHAT_TOKEN,WECHAT_AESKEY,WECHAT_APPID);
 
 function makeSendXml(myName,targetName,text)
 {
@@ -115,11 +115,11 @@ class WechatAction
 				if(msg_signature != null && strlen(msg_signature) > 0)
 				{
 					//加密模式
-					var xmldata = g_WXBizDataCrypt.decryptMsg(msg_signature,timestamp,nonce,request.getData());
+					var xmldata = g_WXBizMsgCrypt.decryptMsg(msg_signature,timestamp,nonce,request.getData());
 					var res = runWechatMsg(xmldata);
 					print res;
 					var newtimestamp = STRING(time());
-					var enres = g_WXBizDataCrypt.encryptMsg(res,newtimestamp,nonce);
+					var enres = g_WXBizMsgCrypt.encryptMsg(res,newtimestamp,nonce);
 					respon.write(enres);	
 				}
 				else
