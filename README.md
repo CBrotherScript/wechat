@@ -11,7 +11,7 @@ wechat.cb提供了一个微信公众号后台开发的例子，实现了后台�
 
 # 模拟官方的例子
 ```javascript
-import WXBizDataCrypt
+import WXBizMsgCrypt
 
 //微信公众号后台加解密
 //对应官方https://developers.weixin.qq.com/doc/oplatform/Third-party_Platforms/2.0/api/Before_Develop/Technical_Plan.html的加解密算法
