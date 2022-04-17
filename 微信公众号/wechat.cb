@@ -1,0 +1,166 @@
+﻿import lib/http
+import WXBizDataCrypt
+
+//微信公众号后台收发消息的例子
+
+const WECHAT_TOKEN = "test_wechat_token_2022.4.17";
+const WECHAT_AESKEY = "48df**************************fb4";
+const WECHAT_APPID = "wxb******";
+
+var g_WXBizDataCrypt = new WXBizMsgCrypt(WECHAT_TOKEN,WECHAT_AESKEY,WECHAT_APPID);
+
+function makeSendXml(myName,targetName,text)
+{
+	var sendXml = new Xml();
+	var rootNode = sendXml.appendChild("xml");
+
+	var msgTypeNode = rootNode.appendChild("MsgType");
+	msgTypeNode.setValue("text",true);
+
+	var toUserNode = rootNode.appendChild("ToUserName");
+	toUserNode.setValue(targetName,true);
+
+	var fromUserNameNode = rootNode.appendChild("FromUserName");
+	fromUserNameNode.setValue(myName,true);
+
+	var contentNode = rootNode.appendChild("Content");
+	contentNode.setValue(text,true);
+
+	var createTimeNode = rootNode.appendChild("CreateTime");
+	createTimeNode.setValue(STRING(time(0)));
+
+	return sendXml.toXmlString();
+}
+
+function runWechatMsg(str)
+{
+	var xml = new Xml(str);
+
+	var rootNode = xml.findChild("xml");
+	var msgTypeNode = rootNode.findChild("MsgType");
+	var msgType = msgTypeNode.getValue();
+	if(msgType == "text")
+	{
+		var fromUserNameNode = rootNode.findChild("FromUserName");
+		var openID = fromUserNameNode.getValue();
+		//print openID;
+
+		var contentNode = rootNode.findChild("Content");
+		var text = contentNode.getValue();
+		//print text;
+
+		var toUserNameNode = rootNode.findChild("ToUserName");
+		var myName = toUserNameNode.getValue();
+		var sendText = "收到了你发送的:" + text;
+		var resStr = makeSendXml(myName,openID,sendText);
+		return resStr;
+	}
+
+	return "success";
+}
+
+class WechatAction
+{
+	function DoAction(request,respon)
+	{
+		var bt = mtime();
+		print "begin " + bt;
+		var signature = request.getParm("signature");
+		var timestamp = request.getParm("timestamp");
+		var nonce = request.getParm("nonce");
+		var echostr = request.getParm("echostr");
+
+		print signature;
+		print timestamp;
+		print nonce;
+		print echostr;
+		print request.getData();
+		
+		//排字典序
+		var array = [WECHAT_TOKEN,timestamp,nonce];
+		for(var i = 0 ; i < array.size() - 1 ; i++)
+		{
+			var minIdx = i;
+			for(var j = 1 ; j < array.size() ; j++)
+			{
+				if(array[minIdx] > array[j])
+				{
+					minIdx = j;
+				}
+			}
+
+			if(minIdx != i)
+			{
+				var temp = array[i];
+				array[i] = array[minIdx];
+				array[minIdx] = temp;
+			}
+		}
+		
+		var str = strjoin(array,"");
+		var sha1 = openssl_sha1(str);
+		print sha1;
+		print signature;
+
+		if(sha1 == signature)
+		{
+			if(echostr != "")
+			{
+				respon.write(echostr);
+			}
+			else
+			{
+				var msg_signature = request.getParm("msg_signature");
+				print msg_signature;
+				if(msg_signature != null && strlen(msg_signature) > 0)
+				{
+					//加密模式
+					var xmldata = g_WXBizDataCrypt.decryptMsg(msg_signature,timestamp,nonce,request.getData());
+					var res = runWechatMsg(xmldata);
+					print res;
+					var newtimestamp = STRING(time());
+					var enres = g_WXBizDataCrypt.encryptMsg(res,newtimestamp,nonce);
+					respon.write(enres);	
+				}
+				else
+				{
+					//明文模式
+					var res = runWechatMsg(request.getData());
+					print "asdfasdfasdf " + res;
+					respon.write(res);
+				}
+
+			}
+			
+		}
+
+		respon.flush();
+		print "end " + mtime(); 
+	}	
+}
+
+@logger
+function logger_config(params)
+{
+	var fileOutput = new logger::LoggerOutputFile(GetRoot(),"http-80");
+	var consoleOutput = new logger::LoggerOutputConsole();
+
+	logger::addLoggerOutput("cbrother.httpserver",fileOutput,"[%d %t] %m");
+	logger::addLoggerOutput("cbrother.httpserver",consoleOutput,"[%d %t] %m");
+}
+
+function main(httpserver,httpsserver)
+{
+	//启动http服务
+	var httpserver = new HttpServer();	
+	httpserver.addAction("wechat.cb",new WechatAction());
+	httpserver.startServer(80);
+
+	//启动https服务
+	/*var httpsserver = new HttpServer();
+	httpsserver.setHttpsCertFile("*.crt","*.key");
+	httpsserver.addAction("wechatdoor.cb",new WechatAction());
+	httpsserver.startServer(443);*/
+
+	GetInput();
+}
