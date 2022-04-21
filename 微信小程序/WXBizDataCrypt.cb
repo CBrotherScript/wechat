@@ -32,14 +32,14 @@ class WXBizDataCrypt
 		
 		var data = openssl_decrypt_aes_128_cbc(aesCipher,aesKey,aesIV);
 		
-		var json = new Json(data);
-		var watermark = json.get("watermark");
+		var json = json::parseJsonString(data);
+		var watermark = json["watermark"];
 		if(watermark == null)
 		{
 			return null;
 		}
 		
-		var jsonappid = watermark.get("appid");
+		var jsonappid = watermark["appid"];
 		if(jsonappid == null)
 		{
 			return null;

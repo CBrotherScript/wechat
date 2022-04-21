@@ -1,0 +1,146 @@
+import lib/http
+import WXBizDataCrypt
+
+// 微信小程序APP_ID SECRET
+const WX_APP_ID = "wx***********";
+const WX_APP_SECRET = "***************";
+
+// 第一次登陆成功后，将用户的信息存储；以便在登录态未过期状态下，直接读取用户信息
+var sessionKeyMap = new Map();
+
+// 自己实现：校验登录态是否过期
+function checkSession(code)
+{
+	var sessionKey = sessionKeyMap.get(code);
+	return sessionKey;
+}
+
+// 解密微信用户信息
+function parseUserData(sessionKey,encryptedData,iv)
+{
+	var oWXBizDataCrypt = new WXBizDataCrypt(WX_APP_ID,sessionKey);
+	var decipher = oWXBizDataCrypt.decryptData(encryptedData,iv);
+	if (decipher == null)
+	{
+		var msg = "解密用户信息错误！";
+		print msg;
+		return msg;
+	}
+
+	// 解密的用户数据
+	var userJson = json::parseJsonString(decipher);
+	// 电话号码是否存在（根据自己需求看是否需要校验）
+	var phoneNumber = userJson["phoneNumber"];
+	if (phoneNumber == null)
+	{
+		var msg = "解析用户信息错误！";
+		print msg;
+		return msg;
+	}
+
+	// 获取用户数据
+	return decipher;
+}
+
+class WechatAction
+{
+	function DoAction(request,respon)
+	{
+		var bt = mtime();
+		print "begin " + bt;
+		var postData = request.getData();
+		if (postData == null)
+		{
+			respon.write("参数错误！");
+			return ;
+		}
+
+		var postJson = json::parseJsonString(postData);
+		var code = postJson["code"];
+		if (code == null)
+		{
+			respon.write("参数code异常!");
+			return ;
+		}
+
+		var encryptedData = postJson["encryptedData"];
+		var iv = postJson["iv"];
+		print encryptedData;
+		print iv;
+		// 微信登陆检查登录态是否过期
+		var tSessionKey = checkSession(code);
+		if (tSessionKey != null)
+		{
+			//直接解密数据
+			var res = parseUserData(tSessionKey,encryptedData,iv);
+			respon.write(res);
+		}
+		else
+		{
+			// 没有登录或者登录状态已过期
+			try
+			{
+				var httpRequestUrl = "https://api.weixin.qq.com/sns/jscode2session";
+				var httpClientRequest = new HttpClientRequest();
+				httpClientRequest.setMethod("GET");
+				httpClientRequest.setUrl(httpRequestUrl);
+				httpClientRequest.addParm("appid",WX_APP_ID);
+				httpClientRequest.addParm("secret",WX_APP_SECRET);
+				httpClientRequest.addParm("js_code",code);
+				httpClientRequest.addParm("grant_type","authorization_code");
+				var httpClientResponse = httpClientRequest.flush();
+				var status = httpClientResponse.getStatus();
+				if (status != HTTP_OK)
+				{
+					var msg = "response code is " + status + ", not 200";
+					respon.write(msg);
+				}
+				else
+				{
+					var dataJson = json::parseJsonString(httpClientResponse.getData());
+					var errCode = dataJson["errcode"];
+					if (errCode != null)
+					{
+						var message = dataJson["errmsg"];
+						print "错误原因:" + errCode + "," + message;
+						respon.write(message);
+					}
+					else
+					{
+						var openId = dataJson["openid"];
+						var session_key = dataJson["session_key"];
+						var unionId = dataJson["unionid"];
+						print openId;
+						print unionId;
+						sessionKeyMap.add(code,session_key);
+						var res = parseUserData(session_key,encryptedData,iv);
+						respon.write(res);
+					}
+				}
+			}
+			catch (error)
+			{
+				print "err:" + error;
+				respon.write(error);
+			}
+		}
+
+		respon.flush();
+		print "end " + mtime();
+	}
+}
+
+function main(httpserver,httpsserver)
+{
+	//启动http服务
+	var httpserver = new HttpServer();
+	httpserver.addAction("wechat.cb",new WechatAction());
+	httpserver.startServer(80);
+	//启动https服务
+	/*var httpsserver = new HttpServer();
+	httpsserver.setHttpsCertFile("*.crt","*.key");
+	httpsserver.addAction("wechatdoor.cb",new WechatAction());
+	httpsserver.startServer(443);*/
+	GetInput();
+}
+
