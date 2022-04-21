@@ -1,4 +1,4 @@
-# wechat
+# wechat-sdk-cb
 这是一个用CBrother实现的微信后台开发中所用到的加密算法
 
 # 微信公众号后台开发
@@ -49,6 +49,7 @@ WXBizDataCrypt.cb为算法库，使用时候主要是包含这个文件
 
 sample.cb完全模拟了官方提供的例子
 
+wechatapp.cb提供了一个微信小程序登录的例子
 ## 模拟官方的例子
 ```javascript
 import WXBizDataCrypt
